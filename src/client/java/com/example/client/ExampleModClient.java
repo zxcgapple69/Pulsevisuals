@@ -1,86 +1,36 @@
-package com.pulsevisual;
+name: Build MaxaVisual
 
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
 
-public class PulseVisualClient implements ClientModInitializer {
+permissions:
+  contents: read
 
-    @Override
-    public void onInitializeClient() {
-        HudRenderCallback.EVENT.register((drawContext, tickCounter) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-            if (client.player == null || client.world == null) {
-                return;
-            }
+    steps:
+      - uses: actions/checkout@v4
 
-            renderHud(drawContext, client);
-        });
-    }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
-    private void renderHud(
-            DrawContext context,
-            MinecraftClient client
-    ) {
-        int x = 8;
-        int y = 8;
-        int lineHeight = 12;
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10'
 
-        // HUD fonini chizish
-        context.fill(
-                x - 3,
-                y - 3,
-                x + 125,
-                y + 57,
-                0xB0101020
-        );
+      - name: Extract source
+        run: unzip MaxaVisual.zip
 
-        // Sarlavha
-        context.drawText(
-                client.textRenderer,
-                Text.literal("PulseVisual"),
-                x,
-                y,
-                0xFFD65BFF,
-                true
-        );
+      - name: Build JAR
+        run: gradle -p MaxaVisual build --no-daemon
 
-        y += lineHeight;
-
-        // FPS
-        context.drawText(
-                client.textRenderer,
-                Text.literal("FPS: " + client.getCurrentFps()),
-                x,
-                y,
-                0xFFFFFFFF,
-                true
-        );
-
-        y += lineHeight;
-
-        // Koordinatalar
-        if (client.player != null) {
-            double px = client.player.getX();
-            double py = client.player.getY();
-            double pz = client.player.getZ();
-
-            String coords = String.format(
-                    "XYZ: %.0f %.0f %.0f",
-                    px, py, pz
-            );
-
-            context.drawText(
-                    client.textRenderer,
-                    Text.literal(coords),
-                    x,
-                    y,
-                    0xFF55FFFF,
-                    true
-            );
-        }
-    }
-}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MaxaVisual-1.21.4
+          path: MaxaVisual/build/libs/*.jar
